@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <!-- Usamos Bootstrap para un diseño profesional y responsivo -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+      /* Estilos personalizados para la aplicación */
+      body { background-color: #f8f9fa; padding: 20px; }
+      .container { max-width: 800px; background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+      .loader { border: 4px solid #f3f3f3; border-radius: 50%; border-top: 4px solid #3498db; width: 30px; height: 30px; animation: spin 2s linear infinite; display: none; margin: 10px auto; }
+      @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h3 class="mb-4">Registro de Nuevo Finiquito</h3>
+      <div id="alert-placeholder"></div>
+
+      <form id="finiquitoForm">
+        <div class="form-row">
+          <div class="form-group col-md-8">
+            <label for="empresa">Empresa</label>
+            <input type="text" class="form-control" id="empresa" name="empresa" value="EMPRESA S.A." onchange="revisarCambioEmpresa(this)">
+          </div>
+          <div class="form-group col-md-4">
+            <label for="nroActaFiniquito">Nro. Acta Finiquito (ID)</label>
+            <input type="text" class="form-control" id="nroActaFiniquito" name="nroActaFiniquito" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group col-md-4">
+            <label for="cedula">Cédula</label>
+            <input type="text" class="form-control" id="cedula" name="cedula" required>
+          </div>
+          <div class="form-group col-md-8">
+            <label for="nombres">Nombres Completos del Empleado</label>
+            <input type="text" class="form-control" id="nombres" name="nombres" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group col-md-4">
+            <label for="fechaEntrada">Fecha de Entrada</label>
+            <input type="date" class="form-control" id="fechaEntrada" name="fechaEntrada" required>
+          </div>
+          <div class="form-group col-md-4">
+            <label for="fechaSalida">Fecha de Salida</label>
+            <input type="date" class="form-control" id="fechaSalida" name="fechaSalida" required>
+          </div>
+           <div class="form-group col-md-4">
+            <label for="netoRecibir">Neto a Recibir</label>
+            <input type="number" step="0.01" class="form-control" id="netoRecibir" name="netoRecibir" required>
+          </div>
+        </div>
+         <div class="form-row">
+          <div class="form-group col-md-6">
+            <label for="hashActa">Hash Acta de Finiquito</label>
+            <input type="text" class="form-control" id="hashActa" name="hashActa" required>
+          </div>
+          <div class="form-group col-md-6">
+            <label for="hashComprobante">Hash Comprobante de Pago</label>
+            <input type="text" class="form-control" id="hashComprobante" name="hashComprobante" required>
+          </div>
+        </div>
+        <hr>
+        <p class="font-weight-bold">Archivos Adjuntos</p>
+         <div class="form-group">
+          <label for="archivoActa">Acta de Finiquito (PDF)</label>
+          <input type="file" class="form-control-file" id="archivoActa" name="archivoActa" accept=".pdf" required>
+        </div>
+         <div class="form-group">
+          <label for="archivoComprobante">Comprobante de Pago (PDF)</label>
+          <input type="file" class="form-control-file" id="archivoComprobante" name="archivoComprobante" accept=".pdf" required>
+        </div>
+        <!-- INICIO DE LA SECCIÓN AÑADIDA -->
+        <div class="form-group">
+          <label for="archivoConfirmacion">Correo de Confirmación (PDF)</label>
+          <input type="file" class="form-control-file" id="archivoConfirmacion" name="archivoConfirmacion" accept=".pdf" required>
+        </div>
+        <!-- FIN DE LA SECCIÓN AÑADIDA -->
+        <hr>
+        <button type="submit" class="btn btn-primary btn-block">Registrar Finiquito</button>
+        <div class="loader" id="loader"></div>
+      </form>
+    </div>
+
+    <script>
+      const form = document.getElementById('finiquitoForm');
+      const loader = document.getElementById('loader');
+      const submitButton = form.querySelector('button[type="submit"]');
+      const alertPlaceholder = document.getElementById('alert-placeholder');
+      const empresaDefault = "EMPRESA S.A.";
+
+      function revisarCambioEmpresa(inputElement) {
+        if (inputElement.value.trim().toUpperCase() !== empresaDefault.toUpperCase()) {
+          const confirmacion = confirm("ADVERTENCIA:\n\nEstá cambiando el nombre de la empresa por defecto ('EMPRESA S.A.').\n\n¿Está seguro de que desea continuar?");
+          if (!confirmacion) {
+            inputElement.value = empresaDefault;
+          }
+        }
+      }
+
+      form.addEventListener('submit', function(e) {
+        e.preventDefault(); 
+        loader.style.display = 'block';
+        submitButton.disabled = true;
+        submitButton.innerText = 'Procesando...';
+
+        google.script.run
+          .withSuccessHandler(function(response) {
+            // Esto se ejecuta si el servidor responde con éxito
+            showAlert(response.message, 'success');
+            form.reset(); 
+            document.getElementById('empresa').value = empresaDefault;
+            
+            // --- CÓDIGO AÑADIDO ---
+            // Restablecemos el botón aquí en caso de ÉXITO
+            loader.style.display = 'none';
+            submitButton.disabled = false;
+            submitButton.innerText = 'Registrar Finiquito';
+          })
+          .withFailureHandler(function(error) {
+            // Esto se ejecuta si hay un error
+            showAlert('Error: ' + error.message, 'danger');
+
+            // --- CÓDIGO AÑADIDO ---
+            // Y también restablecemos el botón aquí en caso de ERROR
+            loader.style.display = 'none';
+            submitButton.disabled = false;
+            submitButton.innerText = 'Registrar Finiquito';
+          })
+          .procesarFiniquitoDesdeFormulario(this);
+      });
+
+      function showAlert(message, type) {
+        alertPlaceholder.innerHTML = '<div class="alert alert-' + type + ' alert-dismissible fade show" role="alert">' +
+                                     message +
+                                     '<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>' +
+                                   '</div>';
+      }
+    </script>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  </body>
+</html>
